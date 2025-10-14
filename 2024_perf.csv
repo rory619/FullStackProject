@@ -1,0 +1,2 @@
+Ticker,Buy Date,Buy Price,%BelowSMA100_at_Buy,Sell Price,Sell Date,%Gain,Cost_bps,Net%Gain,HoldingDays,ExitReason
+EPAM,2024-06-17,174.360001,30.7771,202.25,2024-08-05,15.9956,10,-7.2035,33,MACD_DownCross

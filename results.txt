@@ -1,0 +1,7 @@
+Strategy:
+Create a sell signal when any one of these conditions is met on a later trading day: 
+- the adjusted close is above the 100-day moving average on that trading day.
+- more than 40 trading days have elapsed since the buy signal was created for this stock.
+- we reach the end of theYear.
+2024
+average percentage rturn 8% of the theYear

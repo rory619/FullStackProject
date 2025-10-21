@@ -362,60 +362,6 @@ def run_strategy(per_ticker_df: Dict[str, pd.DataFrame],
 # ==============================
 # ======= PLOTS & STATS ========
 # ==============================
-def plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
-                       trades: pd.DataFrame,
-                       year: int,
-                       breadth_by_date: Dict[pd.Timestamp, float]):
-    """Per traded ticker: price/SMA100 + buy/sell vlines; separate RSI plot."""
-    os.makedirs(plots_dir, exist_ok=True)
-    traded = trades["Ticker"].unique().tolist()
-
-    for t in traded:
-        df_full = per_ticker_df[t]
-        start, end = pd.Timestamp(f"{year}-01-01"), pd.Timestamp(f"{year}-12-31")
-        df_yr = df_full[(df_full["Date"] >= start) & (df_full["Date"] <= end)].reset_index(drop=True)
-        if df_yr.empty or df_yr["Adj Close"].isna().all():
-            continue
-
-        # Price chart
-        fig, ax = plt.subplots(figsize=(11, 5.5))
-        ax.plot(df_yr["Date"], df_yr["Adj Close"], label="Adj Close")
-        ax.plot(df_yr["Date"], df_yr["SMA100"], label="SMA100")
-
-        # Shade weak breadth
-        if breadth_by_date:
-            dates = df_yr["Date"].dt.date
-            mask_weak = [(breadth_by_date.get(pd.Timestamp(d), np.nan) < breadth_min) for d in dates]
-            y0, y1 = ax.get_ylim()
-            ax.fill_between(df_yr["Date"], y0, y1, where=mask_weak, alpha=0.08, label=f"Breadth<{int(breadth_min*100)}%")
-
-        # Buy/Sell vertical dashed lines
-        t_trades = trades[trades["Ticker"] == t]
-        for _, r in t_trades.iterrows():
-            ax.axvline(pd.Timestamp(r["Buy Date"]), linestyle="--", linewidth=1.0)
-            ax.axvline(pd.Timestamp(r["Sell Date"]), linestyle="--", linewidth=1.0)
-
-        ax.set_title(f"{t} — {year} (Price)")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Price")
-        ax.legend()
-        fig.autofmt_xdate()
-        fig.savefig(os.path.join(plots_dir, f"{t}.png"), bbox_inches="tight", dpi=150)
-        plt.close(fig)
-
-        # RSI chart
-        if "RSI14" in df_yr.columns and not df_yr["RSI14"].isna().all():
-            fig2, ax2 = plt.subplots(figsize=(11, 2.8))
-            ax2.plot(df_yr["Date"], df_yr["RSI14"], label="RSI(14)")
-            ax2.axhline(70, linestyle="--", linewidth=1.0)
-            ax2.axhline(30, linestyle="--", linewidth=1.0)
-            ax2.set_title(f"{t} — {year} (RSI)")
-            ax2.set_xlabel("Date")
-            ax2.set_ylabel("RSI")
-            ax2.legend()
-            fig2.autofmt_xdate()
-            fig2.savefig(os.path.join(plots_dir, f"{t}_RSI.png"), bbox_inches="tight", dpi=150)
-            plt.close(fig2)
 
 def summarize_performance(trades: pd.DataFrame):
     """Print average percentage stats (gross & net), win-rate, avg hold."""
@@ -433,7 +379,7 @@ def summarize_performance(trades: pd.DataFrame):
     print(f"Average holding days: {avg_hold:.1f}")
 
 
-ef plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
+def plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
                        trades: pd.DataFrame,
                        year: int,
                        breadth_by_date: Dict[pd.Timestamp, float]):

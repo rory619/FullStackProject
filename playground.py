@@ -21,6 +21,7 @@ from typing import Dict, Tuple, List
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 # ============================================
 # ============== PARAMETERS ==================
@@ -654,6 +655,81 @@ def plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
             fig2.savefig(os.path.join(plots_dir, f"{t}_RSI.png"), bbox_inches="tight", dpi=150)
             plt.close(fig2)
 
+def plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
+                       trades: pd.DataFrame,
+                       year: int,
+                       breadth_by_date: Dict[pd.Timestamp, float]):
+    os.makedirs(plots_dir, exist_ok=True)
+    if trades.empty:
+        return
+
+    traded = trades["Ticker"].unique().tolist()
+    for t in traded:
+        
+        df_full = per_ticker_df[t]
+        start, end = pd.Timestamp(f"{year}-01-01"), pd.Timestamp(f"{year}-12-31")
+        df_yr = df_full[(df_full["Date"] >= start) & (df_full["Date"] <= end)].reset_index(drop=True)
+        if df_yr.empty or df_yr["Adj Close"].isna().all():
+            continue
+
+        t_trades = trades[trades["Ticker"] == t]
+
+        # Create figure with 3 vertical subplots (Price+SMA, Volume, RSI)
+        fig, (ax_price, ax_vol, ax_rsi) = plt.subplots(3, 1, figsize=(12, 8), sharex=True,
+                                                      gridspec_kw={'height_ratios': [4, 1, 2]})
+
+        # --- Price and SMA100 ---
+        ax_price.plot(df_yr["Date"], df_yr["Adj Close"], label="Adj Close", color="blue")
+        ax_price.plot(df_yr["Date"], df_yr["SMA100"], label="SMA100", color="orange", linestyle="--")
+
+        # Shade weak breadth
+        if breadth_by_date:
+            dates = df_yr["Date"].dt.date
+            mask_weak = [(breadth_by_date.get(pd.Timestamp(d), np.nan) < breadth_min) for d in dates]
+            y0, y1 = ax_price.get_ylim()
+            ax_price.fill_between(df_yr["Date"], y0, y1, where=mask_weak, color="red", alpha=0.1,
+                                  label=f"Breadth < {int(breadth_min*100)}%")
+
+        # Mark buy/sell points with scatter markers
+        ax_price.scatter(t_trades["Buy Date"], t_trades["Buy Price"], marker="^", color="green",
+                         label="Buy", s=80, zorder=5)
+        ax_price.scatter(t_trades["Sell Date"], t_trades["Sell Price"], marker="v", color="red",
+                         label="Sell", s=80, zorder=5)
+
+        ax_price.set_ylabel("Price")
+        ax_price.set_title(f"{t} — {year} Price + SMA100")
+        ax_price.grid(True)
+        ax_price.legend(loc="upper left")
+
+        # --- Volume bars ---
+        if "Volume" in df_yr.columns and not df_yr["Volume"].isna().all():
+            ax_vol.bar(df_yr["Date"], df_yr["Volume"], color="gray", alpha=0.6)
+            ax_vol.set_ylabel("Volume")
+            ax_vol.grid(True)
+        else:
+            ax_vol.set_visible(False)
+
+        # --- RSI plot ---
+        if "RSI14" in df_yr.columns and not df_yr["RSI14"].isna().all():
+            ax_rsi.plot(df_yr["Date"], df_yr["RSI14"], label="RSI(14)", color="purple")
+            ax_rsi.axhline(70, color="red", linestyle="--", linewidth=1)
+            ax_rsi.axhline(30, color="green", linestyle="--", linewidth=1)
+            ax_rsi.set_ylabel("RSI")
+            ax_rsi.set_xlabel("Date")
+            ax_rsi.set_title("RSI (14)")
+            ax_rsi.grid(True)
+            ax_rsi.legend()
+        else:
+            ax_rsi.set_visible(False)
+
+        # Date formatting on x-axis
+        ax_rsi.xaxis.set_major_locator(mdates.MonthLocator())
+        ax_rsi.xaxis.set_major_formatter(mdates.DateFormatter("%b"))
+
+        fig.tight_layout()
+        fig.savefig(os.path.join(plots_dir, f"{t}_enhanced.png"), dpi=150)
+        plt.close(fig)
+
 # ============================================
 # ============ REPORTING / STATS =============
 # ============================================
@@ -746,6 +822,8 @@ def _choose_params_for_year(per_ticker_df, year: int):
 
 def run_one_year(per_ticker_df, year: int):
     """Runs one year, writes CSV to results/, plots to plots/<year>/, returns the trades DataFrame."""
+    global plots_dir  # <-- must be before any reference/assignment to plots_dir
+
     b, a, v = _choose_params_for_year(per_ticker_df, year)
     trades = run_strategy(per_ticker_df, year, b, a, v)
 
@@ -760,7 +838,6 @@ def run_one_year(per_ticker_df, year: int):
     # plot to plots/<year> (temporarily redirect global plots_dir)
     year_plots = os.path.join(plots_dir, str(year))
     os.makedirs(year_plots, exist_ok=True)
-    global plots_dir
     old_plots = plots_dir
     plots_dir = year_plots
     try:
@@ -771,6 +848,7 @@ def run_one_year(per_ticker_df, year: int):
         summarize_performance(trades)
     finally:
         plots_dir = old_plots
+
 
     return trades
 

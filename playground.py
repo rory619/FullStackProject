@@ -432,7 +432,8 @@ def summarize_performance(trades: pd.DataFrame):
     print(f"Win rate: {win_rate:.1f}%")
     print(f"Average holding days: {avg_hold:.1f}")
 
-def plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
+
+ef plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
                        trades: pd.DataFrame,
                        year: int,
                        breadth_by_date: Dict[pd.Timestamp, float]):
@@ -503,6 +504,7 @@ def plot_price_and_rsi(per_ticker_df: Dict[str, pd.DataFrame],
         fig.tight_layout()
         fig.savefig(os.path.join(plots_dir, f"{t}_enhanced.png"), dpi=150)
         plt.close(fig)
+
 
 # ==============================
 # ========== DRIVER ============

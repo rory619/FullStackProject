@@ -1,7 +1,9 @@
 Strategy:
 Gives a Buy/Sell signal based on RSI
-If stock price falls below 30% of the SMA100(The average over the last 100 days), it sesnd a buy signal.
+If stock price falls below 30% of the SMA100(The average over the last 100 days), it send a buy signal.
 Similarly, if it breaches 70% of the SMA100 it send a sell signal.
 
 The reasoning behind this is if it falls below 30% it suggest a strong bearish momentum, possibly pessimistic
 When it rises above 70% it suggest strong bullish momentum, possibly overheating, meaning it is being overbought and thus is easy to sell for a good price.
+
+There is also a graph that tracks cumulative buying/selling preassure from volume
